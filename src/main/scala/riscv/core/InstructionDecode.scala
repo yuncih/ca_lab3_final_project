@@ -137,6 +137,10 @@ class InstructionDecode extends Module {
     val wb_reg_write_source    = Output(UInt(2.W))
     val reg_write_enable       = Output(Bool())
     val reg_write_address      = Output(UInt(Parameters.PhysicalRegisterAddrWidth))
+    // CSR
+    val csr_addr               = Output(UInt(12.W))
+    val csr_in                 = Output(UInt(Parameters.DataWidth))
+    val csr_op                 = Output(UInt(3.W))
   })
   val opcode = io.instruction(6, 0)
   val funct3 = io.instruction(14, 12)
@@ -145,6 +149,40 @@ class InstructionDecode extends Module {
   val rs1    = io.instruction(19, 15)
   val rs2    = io.instruction(24, 20)
 
+  // CSR
+  io.csr_addr := 0.U
+  io.csr_in := 0.U
+  io.csr_op := 0.U
+  io.reg_write_enable := false.B
+  io.memory_read_enable := false.B
+  io.memory_write_enable := false.B
+  io.ex_immediate := 0.U
+  io.ex_aluop1_source := ALUOp1Source.Register
+  io.ex_aluop2_source := ALUOp2Source.Register
+  io.wb_reg_write_source := RegWriteSource.ALUResult
+  io.reg_write_address := 0.U
+  io.regs_reg1_read_address := 0.U
+  io.regs_reg2_read_address := 0.U
+
+  when (opcode === Instructions.csr) {
+    io.csr_addr := io.instruction(31, 20)  
+    io.csr_op := funct3 
+
+    io.csr_in := Mux(io.csr_op === InstructionsTypeCSR.csrrwi || io.csr_op === InstructionsTypeCSR.csrrsi || io.csr_op === InstructionsTypeCSR.csrrci,
+                     rs1, 
+                     0.U) 
+                      
+    io.reg_write_enable := false.B 
+  } .otherwise {
+    io.csr_addr := 0.U
+    io.csr_op := 0.U
+    io.csr_in := 0.U
+    io.reg_write_enable := (opcode === InstructionTypes.RM) || (opcode === InstructionTypes.I) ||
+      (opcode === InstructionTypes.L) || (opcode === Instructions.auipc) || (opcode === Instructions.lui) ||
+      (opcode === Instructions.jal) || (opcode === Instructions.jalr)
+  }
+  io.reg_write_address := rd
+  
   io.regs_reg1_read_address := Mux(opcode === Instructions.lui, 0.U(Parameters.PhysicalRegisterAddrWidth), rs1)
   io.regs_reg2_read_address := rs2
   val immediate = MuxLookup(
@@ -195,6 +233,15 @@ class InstructionDecode extends Module {
   )
 
   // lab3(InstructionDecode) begin
+  io.memory_read_enable := opcode === InstructionTypes.L
+  io.memory_write_enable := opcode === InstructionTypes.S
+
+  // Decode read register logic based on opcode
+  io.regs_reg1_read_address := MuxCase(0.U, Array(
+    (opcode === InstructionTypes.RM || opcode === InstructionTypes.I || opcode === InstructionTypes.B) -> rs1,
+    (opcode === InstructionTypes.S || opcode === Instructions.jalr || opcode === InstructionTypes.L) -> rs1
+  ))
+  io.regs_reg2_read_address := Mux(opcode === InstructionTypes.RM || opcode === InstructionTypes.S || opcode === InstructionTypes.B, rs2, 0.U)
 
   // lab3(InstructionDecode) end
 

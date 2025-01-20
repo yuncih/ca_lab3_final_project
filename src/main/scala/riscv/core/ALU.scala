@@ -9,7 +9,7 @@ import chisel3.util._
 import riscv.Parameters
 
 object ALUFunctions extends ChiselEnum {
-  val zero, add, sub, sll, slt, xor, or, and, srl, sra, sltu = Value
+  val zero, add, sub, sll, slt, xor, or, and, srl, sra, sltu, andn, orn, xnor, shfl, rol, ror = Value
 }
 
 class ALU extends Module {
@@ -23,6 +23,7 @@ class ALU extends Module {
   })
 
   io.result := 0.U
+  val dataWidth = Parameters.DataWidth
   switch(io.func) {
     is(ALUFunctions.add) {
       io.result := io.op1 + io.op2
@@ -53,6 +54,32 @@ class ALU extends Module {
     }
     is(ALUFunctions.sltu) {
       io.result := io.op1 < io.op2
+    }
+    // B extention
+    is(ALUFunctions.andn) {
+      io.result := io.op1 & ~io.op2 // ANDN: op1 AND NOT op2
+    }
+    is(ALUFunctions.orn) {
+      io.result := io.op1 | ~io.op2 // ORN: op1 OR NOT op2
+    }
+    is(ALUFunctions.xnor) {
+      io.result := ~(io.op1 ^ io.op2) // XNOR: NOT (op1 XOR op2)
+    }
+    is(ALUFunctions.shfl) {
+      // SHFL: Shift Left Logical, shift `op2` positions on `op1`
+      io.result := io.op1 << io.op2(4, 0)
+    }
+    is(ALUFunctions.rol) {
+      // ROL: Rotate Left
+      val shiftAmount = io.op2(4, 0)
+      val width = dataWidth.get
+      io.result := (io.op1 << shiftAmount) | (io.op1 >> (width.U - shiftAmount))
+    }
+    is(ALUFunctions.ror) {
+      // ROR: Rotate Right
+      val shiftAmount = io.op2(4, 0)
+      val width = dataWidth.get
+      io.result := (io.op1 >> shiftAmount) | (io.op1 << (width.U - shiftAmount))
     }
   }
 

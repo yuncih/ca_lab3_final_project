@@ -17,6 +17,7 @@ class CPU extends Module {
   val ex         = Module(new Execute)
   val mem        = Module(new MemoryAccess)
   val wb         = Module(new WriteBack)
+  val csrFile    = Module(new CSRFile)
 
   io.deviceSelect := mem.io.memory_bundle
     .address(Parameters.AddrBits - 1, Parameters.AddrBits - Parameters.SlaveDeviceCountBits)
@@ -37,9 +38,30 @@ class CPU extends Module {
   io.debug_read_data         := regs.io.debug_read_data
 
   id.io.instruction := inst_fetch.io.instruction
+  // CSR
+  csrFile.io.rs1_data := regs.io.read_data1  
+  csrFile.io.csr_addr := id.io.csr_addr      
+  csrFile.io.csr_in   := id.io.csr_in        
+  csrFile.io.csr_op   := id.io.csr_op    
 
+  regs.io.write_enable  := id.io.reg_write_enable
+  regs.io.write_address := id.io.reg_write_address
+  regs.io.write_data    := wb.io.regs_write_data
+
+  wb.io.instruction_address := inst_fetch.io.instruction_address
+  wb.io.alu_result          := ex.io.mem_alu_result
+  wb.io.memory_read_data    := mem.io.wb_memory_read_data
+  wb.io.regs_write_source   := id.io.wb_reg_write_source
+  
   // lab3(cpu) begin
-
+  // Connect inputs of the Execute module
+  ex.io.instruction := inst_fetch.io.instruction
+  ex.io.instruction_address := inst_fetch.io.instruction_address
+  ex.io.reg1_data := regs.io.read_data1
+  ex.io.reg2_data := regs.io.read_data2
+  ex.io.immediate := id.io.ex_immediate
+  ex.io.aluop1_source := id.io.ex_aluop1_source
+  ex.io.aluop2_source := id.io.ex_aluop2_source
   // lab3(cpu) end
 
   mem.io.alu_result          := ex.io.mem_alu_result
