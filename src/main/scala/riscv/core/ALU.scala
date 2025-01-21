@@ -9,7 +9,8 @@ import chisel3.util._
 import riscv.Parameters
 
 object ALUFunctions extends ChiselEnum {
-  val zero, add, sub, sll, slt, xor, or, and, srl, sra, sltu, andn, orn, xnor, shfl, rol, ror = Value
+  val zero, add, sub, sll, slt, xor, or, and, srl, sra, sltu, andn, orn, xnor, shfl, rol, ror,
+  clz, ctz, cpop, bext, bset, bclr = Value
 }
 
 class ALU extends Module {
@@ -81,6 +82,27 @@ class ALU extends Module {
       val width = dataWidth.get
       io.result := (io.op1 >> shiftAmount) | (io.op1 << (width.U - shiftAmount))
     }
+    is(ALUFunctions.ctz) {
+      // CTZ: Count Trailing Zeros
+      io.result := PopCount(io.op1).asUInt // Count trailing zeros
+    }
+    is(ALUFunctions.cpop) {
+      // CPOP: Count One Bits (Population Count)
+      io.result := PopCount(io.op1).asUInt // Count number of 1 bits
+    }
+    is(ALUFunctions.bext) {
+      // BEXT: Extract Bit
+      io.result := io.op1(io.op2(4, 0)) // Extract bit from op1 at position specified by op2
+    }
+    is(ALUFunctions.bset) {
+      // BSET: Set Bit
+      io.result := io.op1 | (1.U << io.op2(4, 0)) // Set bit in op1 at position specified by op2
+    }
+    is(ALUFunctions.bclr) {
+      // BCLR: Clear Bit
+      io.result := io.op1 & ~(1.U << io.op2(4, 0)) // Clear bit in op1 at position specified by op2
+    }
   }
+
 
 }
