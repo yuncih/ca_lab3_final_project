@@ -1,6 +1,5 @@
 # Project Specific stuff
 test_run_dir/*
-*.vcd
 
 # Eclipse Core
 .project
@@ -32,7 +31,6 @@ test_run_dir/*
 
 *.o
 *.elf
-csrc/*.asmbin
 
 # Libraries
 *.lib
@@ -192,8 +190,6 @@ project/plugins/project/
 hs_err_pid*
 
 verilog/*.txt
-verilog/verilator/*
-!verilog/verilator/sim_main.cpp
 *.jou
 *.log
 .Xil
